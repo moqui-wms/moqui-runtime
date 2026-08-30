@@ -36,10 +36,8 @@ along with this software (see the LICENSE.md file). If not, see
             footer_scripts.add('/js/CombinedVuet.min.js')
         } else {
             /* ========== Dev Mode ========== */
-            // Vue JS
-            footer_scripts.add('/libs/vue/vue.global.js')
-            // Vue JS compat
-//            footer_scripts.add('/libs/vue.global.min.js')
+            // Vue JS (Vue 2; WebrootVue.js uses Vue 2 API like Vue.filter)
+            footer_scripts.add('/libs/vue/vue.js')
             // http-vue-loader
             footer_scripts.add('/js/http-vue-loader/httpVueLoader.js')
             // Webroot Vue instance, in footer so runs after page loaded
