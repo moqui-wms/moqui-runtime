@@ -18,6 +18,8 @@
  * -
  */
 
+const { createApp, defineComponent } = Vue
+
 moqui.webrootVue = createApp({
     data() { return { basePath:"", linkBasePath:"", currentPathList:[], extraPathList:[], currentParameters:{}, bodyParameters:null,
         activeSubscreens:[], navMenuList:[], navHistoryList:[], navPlugins:[], accountPlugins:[], notifyHistoryList:[],
@@ -472,7 +474,7 @@ moqui.webrootVue = createApp({
     beforeDestroy: function() {
         this.sessionTokenBc.close();
     }
-}).use(router);
+});
 // some globals for all Vue components to directly use the moqui object (for methods, constants, etc) and the window object
 /*
 Vue.prototype.moqui = moqui;
@@ -2537,7 +2539,7 @@ moqui.webrootVue.component('m-subscreens-tabs', {
 moqui.webrootVue.component('m-subscreens-active', {
     name: "mSubscreensActive",
     data: function() { return { activeComponent:moqui.EmptyComponent, pathIndex:-1, pathName:null } },
-    template: '<router-view v-slot="{ Component }"><component :is="Component" style="height:100%;width:100%;"></component></router-view>',
+    template: '<component :is="activeComponent" style="height:100%;width:100%;"></component>',
     methods: { 
         loadActive: function() {
             var vm = this;
@@ -2550,8 +2552,7 @@ moqui.webrootVue.component('m-subscreens-active', {
 
             if (!newPath || newPath.length === 0) {
                 console.info("in m-subscreens-active newPath is empty, loading EmptyComponent and returning true");
-                console.log('would have run this.$router.replace({ name: \'empty\' })');
-                // this.$router.replace({ name: 'empty' });
+                this.activeComponent = moqui.EmptyComponent;
                 return true;
             }
 
@@ -2574,18 +2575,10 @@ moqui.webrootVue.component('m-subscreens-active', {
 
             console.info('m-subscreens-active loadActive pathIndex ' + pathIndex + ' pathName ' + vm.pathName + ' urlInfo ' + JSON.stringify(urlInfo));
             
-            qvt2FullPath = fullPath.replace(root.basePath, root.linkBasePath);
             root.loading++;
             root.currentLoadRequest = moqui.loadComponent(urlInfo, function(comp) {
                 root.currentLoadRequest = null;
-                console.log('running this.$router.addRoute({ path: '+qvt2FullPath+', component: '+comp+' });');
-                vm.$router.addRoute({
-                    path: qvt2FullPath,
-                    name: qvt2FullPath,
-                    component: comp
-                });
-                console.log('running this.$router.replace('+qvt2FullPath+');');
-                vm.$router.replace(qvt2FullPath);
+                vm.activeComponent = comp;
                 root.loading--;
             });
             return true;
@@ -2593,13 +2586,6 @@ moqui.webrootVue.component('m-subscreens-active', {
     },
     mounted: function() {
         this.$root.addSubscreen(this);
-        // Add default empty route
-        console.log('would have run this.$router.addRoute({ name: \'empty\', path: \'\', component: moqui.EmptyComponent });');
-        // this.$router.addRoute({
-        //     name: 'empty',
-        //     path: '',
-        //     component: moqui.EmptyComponent
-        // });
     }
 });
 
@@ -2665,35 +2651,30 @@ const moquiWebrootApp = moqui.webrootVue.mount('#apps-root')
 
 window.addEventListener('popstate', function() { moquiWebrootApp.setUrl(window.location.pathname + window.location.search, null, null, false); });
 
-// NOTE: simulate vue-router so this.$router.resolve() works in a basic form; required for use of q-btn 'to' attribute along with router-link component defined above
-// moqui.webrootRouter = {
-//     resolve: function resolve(to, current, append) {
-//         var location = moqui.isString(to) ? moqui.parseHref(to) : to;
+// NOTE: simulate vue-router so this.$router.resolve() works in a basic form; required for use of q-btn 'to'
+//     attribute (q-btn/q-item with :to call $router.resolve/push). This is NOT a full router: screen rendering
+//     is handled by m-subscreens-active via activeComponent (see that component), and :to active highlighting is
+//     intentionally not supported (it needs shared route records; see Quasar useRouterLink isSameRouteRecord).
+moqui.webrootRouter = {
+    resolve: function resolve(to, current, append) {
+        var location = moqui.isString(to) ? moqui.parseHref(to) : to;
 
-//         var path = location.path;
-//         if (moqui.webrootVue) location.path = path = moquiWebrootApp.getLinkPath(path);
+        var path = location.path;
+        if (moqui.webrootVue) location.path = path = moquiWebrootApp.getLinkPath(path);
 
-//         var lslIdx = path.lastIndexOf("/");
-//         var name = lslIdx === -1 ? path : path.slice(lslIdx+1);
+        var lslIdx = path.lastIndexOf("/");
+        var name = lslIdx === -1 ? path : path.slice(lslIdx+1);
 
-//         var route = { name:name, meta:{}, path:path,
-//             hash:location.hash||"", query:location.query||"", params: {}, fullPath:path, matched:[] };
-//         return { location:location, route:route, href:moqui.makeHref(location), normalizedTo:location, resolved:route }
-//     },
-//     replace: function(location, onComplete, onAbort) { moquiWebrootApp.setUrl(location, null, onComplete); },
-//     push: function(location, onComplete, onAbort) { moquiWebrootApp.setUrl(location, null, onComplete); }
-// }
-/*
-Object.defineProperty(Vue.prototype, '$router', {
-    get: function get() { return moqui.webrootRouter; }
+        var route = { name:name, meta:{}, path:path,
+            hash:location.hash||"", query:location.query||"", params: {}, fullPath:path, matched:[] };
+        return { location:location, route:route, href:moqui.makeHref(location), normalizedTo:location, resolved:route }
+    },
+    replace: function(location, onComplete, onAbort) { moquiWebrootApp.setUrl(location, null, onComplete); },
+    push: function(location, onComplete, onAbort) { moquiWebrootApp.setUrl(location, null, onComplete); }
+}
+moqui.webrootVue.config.globalProperties.$router = moqui.webrootRouter;
+Object.defineProperty(moqui.webrootVue.config.globalProperties, '$route', {
+    get() {
+        return moquiWebrootApp.getRoute();
+    }
 });
-Object.defineProperty(Vue.prototype, '$route', {
-    get: function get() { return moqui.webrootVue.getRoute(); }
-});
-*/
-// moqui.webrootVue.config.globalProperties.$router = moqui.webrootRouter;
-// Object.defineProperty(moqui.webrootVue.config.globalProperties, '$route', {
-//     get() {
-//         return moquiWebrootApp.getRoute();
-//     }
-// });
