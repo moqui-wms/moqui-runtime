@@ -584,6 +584,43 @@ body.bg-light .select2-search--dropdown .select2-search__field {
 .valid-feedback { color: var(--accent-success); font-size: 0.8rem; }
 .invalid-feedback { color: var(--accent-danger); font-size: 0.8rem; }
 
+/* Moqui forms use jQuery-validate, which marks the .form-group with .has-error
+   and emits the message as .help-block (Bootstrap 3 classes). Style both so errors
+   are visible under Bootstrap 5. */
+.form-group.has-error .form-control,
+.form-group.has-error .form-select,
+.form-group.has-error .form-control:focus,
+.form-group.has-error .form-select:focus {
+    border-color: var(--accent-danger) !important;
+}
+.form-group.has-error .help-block {
+    color: var(--accent-danger);
+    font-size: 0.85rem;
+}
+.help-block { font-size: 0.85rem; }
+
+/* Theme switcher dropdown in the navbar: the native <select> control and its
+   popup should match the current light/dark mode so text stays readable (the
+   original markup forces bg-dark/text-light which reads badly on a light theme). */
+#bootstrap-theme-select {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    color-scheme: light;
+}
+#bootstrap-theme-select option {
+    background-color: #ffffff;
+    color: #212529;
+}
+body.bg-dark #bootstrap-theme-select {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    color-scheme: dark;
+}
+body.bg-dark #bootstrap-theme-select option {
+    background-color: #212529;
+    color: #f8f9fa;
+}
+
 /* Dark mode — explicit form control overrides (beat Bootstrap 5 component vars) */
 body.bg-dark .form-control,
 body.bg-dark .form-select,

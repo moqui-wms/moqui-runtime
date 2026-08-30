@@ -1346,6 +1346,17 @@ body.hide-nav {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
+/* keep the hover state alive across the gap between the trigger and the menu,
+   otherwise the menu closes while the pointer crosses the margin-top gap */
+#header-menus > li.dropdown > .dropdown-menu::before {
+    content: "";
+    position: absolute;
+    top: -0.5rem;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+}
+
 #header-menus > li.dropdown.open > .dropdown-menu,
 #header-menus > li.dropdown.show > .dropdown-menu {
     display: block;
