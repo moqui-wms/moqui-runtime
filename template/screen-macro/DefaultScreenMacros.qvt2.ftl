@@ -1226,7 +1226,7 @@ ${sri.renderIncludeScreen(.node["@location"], .node["@share-scope"]!)}
                 <div class="tr">
                     <#if isRowSelection>
                         <div class="th"><span class="q-my-auto">
-                            <q-checkbox size="sm" v-model="formProps.checkboxAllState" @input="formProps.setCheckboxAllState">
+                            <q-checkbox size="sm" v-model="formProps.checkboxAllState" @update:model-value="formProps.setCheckboxAllState">
                                 <q-tooltip>{{formProps.checkboxAllState ? '${ec.getL10n().localize("Unselect All")}' : '${ec.getL10n().localize("Select All")}'}}</q-tooltip></q-checkbox>
                             <q-btn dense flat icon="build" :color="formProps.checkboxStates && formProps.checkboxStates.includes(true) ? 'success' : ''">
                                 <q-tooltip>${ec.getL10n().localize("Row Actions")}</q-tooltip>
@@ -1645,7 +1645,7 @@ ${sri.renderIncludeScreen(.node["@location"], .node["@share-scope"]!)}
     </#if>
             <#list (options.keySet())! as key>
                 <q-checkbox size="xs" val="${key?html}" label="${(options.get(key)!"")?html}" name="${curName}" id="${tlId}<#if (key_index > 0)>_${key_index}</#if>"<#if ownerForm?has_content> form="${ownerForm}"</#if><#rt>
-                    <#lt><#if fieldsJsName?has_content> v-model="${fieldsJsName}.${curName}"<#else> value="${key?html}"<#if allChecked! == "true"> checked="checked"<#elseif currentValue?has_content && (currentValue==key || currentValue.contains(key))> checked="checked"</#if></#if>></q-checkbox>
+                    <#lt><#if fieldsJsName?has_content> v-model="${fieldsJsName}.${curName}"<#else> :model-value="${(allChecked! == 'true' || (currentValue?has_content && (currentValue==key || currentValue.contains(key))))?then('true','false')}"</#if>></q-checkbox>
             </#list>
     <#if useWrapper>
         </template>

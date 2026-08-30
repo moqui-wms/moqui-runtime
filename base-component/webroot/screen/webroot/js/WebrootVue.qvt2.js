@@ -874,10 +874,12 @@ moqui.webrootVue.component('m-box-body', {
 });
 moqui.webrootVue.component('m-dialog', {
     name: "mDialog",
-    props: { draggable:{type:Boolean,'default':true}, value:{type:Boolean,'default':false}, id:String, color:String, width:{type:String}, title:{type:String} },
+    props: { draggable:{type:Boolean,'default':true}, value:{type:Boolean,'default':false}, modelValue:{type:Boolean,'default':null}, id:String, color:String, width:{type:String}, title:{type:String} },
     data: function() { return { isShown:false }; },
+    emits: ['input', 'update:modelValue'],
+    computed: { curValue: function() { return this.modelValue !== null ? this.modelValue : this.value; } },
     template:
-    '<q-dialog v-bind:value="value" v-on:input="$emit(\'input\', $event)" :id="id" @show="onShow" @hide="onHide" :maximized="$q.platform.is.mobile">' +
+    '<q-dialog :model-value="curValue" @update:model-value="onModelValue" :id="id" @show="onShow" @hide="onHide" :maximized="$q.platform.is.mobile">' +
         '<q-card ref="dialogCard" flat bordered :style="{width:((width||760)+\'px\'),\'max-width\':($q.platform.is.mobile?\'100vw\':\'90vw\')}">' +
             '<q-card-actions ref="dialogHeader" :style="{cursor:(draggable?\'move\':\'default\')}">' +
                 '<h5 class="q-pl-sm non-selectable">{{title}}</h5><q-space></q-space>' +
@@ -887,6 +889,7 @@ moqui.webrootVue.component('m-dialog', {
         '</q-card>' +
     '</q-dialog>',
     methods: {
+        onModelValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); },
         onShow: function() {
             if (this.draggable) { this.$refs.dialogHeader.$el.addEventListener("mousedown", this.onGrab); }
             this.focusFirst();
@@ -1717,26 +1720,27 @@ moqui.webrootVue.component('m-form-list', {
 /* ========== form field widget components ========== */
 moqui.webrootVue.component('m-date-time', {
     name: "mDateTime",
-    props: { id:String, name:{type:String,required:true}, value:String, type:{type:String,'default':'date-time'}, label:String,
+    props: { id:String, name:{type:String,required:true}, value:String, modelValue:String, type:{type:String,'default':'date-time'}, label:String,
         size:String, format:String, tooltip:String, form:String, required:String, rules:Array, disable:Boolean, autoYear:String,
         minuteStep:{type:Number,'default':5}, bgColor:String },
+    emits: ['input', 'update:modelValue'],
     template:
     // NOTE: tried :fill-mask="formatVal" but results in all Y, only supports single character for mask placeholder... how to show more helpful date mask?
     // TODO: add back @focus="focusDate" @blur="blurDate" IFF needed given different mask/etc behavior
-    '<q-input dense outlined stack-label :label="label" v-bind:value="value" v-on:input="$emit(\'input\', $event)" :rules="rules"' +
+    '<q-input dense outlined stack-label :label="label" :model-value="curValue" @update:model-value="onModelValue" :rules="rules"' +
             ' :mask="inputMask" fill-mask :id="id" :name="name" :form="form" :disable="disable" :size="sizeVal"' +
             ' style="max-width:max-content;" :bg-color="bgColor">' +
         '<template v-slot:prepend v-if="type==\'date\' || type==\'date-time\' || !type">' +
             '<q-icon name="event" class="cursor-pointer">' +
                 '<q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">' +
-                    '<q-date v-bind:value="value" v-on:input="$emit(\'input\', $event)" :mask="formatVal" @input="function(){$refs.qDateProxy.hide()}"></q-date>' +
+                    '<q-date :model-value="curValue" :mask="formatVal" @update:model-value="onDatePicked"></q-date>' +
                 '</q-popup-proxy>' +
             '</q-icon>' +
         '</template>' +
         '<template v-slot:append v-if="type==\'time\' || type==\'date-time\' || !type">' +
             '<q-icon name="access_time" class="cursor-pointer">' +
                 '<q-popup-proxy ref="qTimeProxy" transition-show="scale" transition-hide="scale">' +
-                    '<q-time v-bind:value="value" v-on:input="$emit(\'input\', $event)" :mask="formatVal" format24h @input="function(){$refs.qTimeProxy.hide()}"></q-time>' +
+                    '<q-time :model-value="curValue" :mask="formatVal" format24h @update:model-value="onTimePicked"></q-time>' +
                 '</q-popup-proxy>' +
             '</q-icon>' +
         '</template>' +
@@ -1745,12 +1749,16 @@ moqui.webrootVue.component('m-date-time', {
     // TODO: how to add before slot pass through without the small left margin when nothing in the slot? <template v-slot:before><slot name="before"></slot></template>
     // TODO handle required (:required="required == 'required' ? true : false")
     methods: {
+        emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); },
+        onModelValue: function(value) { this.emitValue(value); },
+        onDatePicked: function(value) { this.emitValue(value); if (this.$refs.qDateProxy) this.$refs.qDateProxy.hide(); },
+        onTimePicked: function(value) { this.emitValue(value); if (this.$refs.qTimeProxy) this.$refs.qTimeProxy.hide(); },
         focusDate: function(event) {
             if (this.type === 'time' || this.autoYear === 'false') return;
             var curVal = this.value;
             if (!curVal || !curVal.length) {
                 var startYear = (this.autoYear && this.autoYear.match(/^[12]\d\d\d$/)) ? this.autoYear : new Date().getFullYear()
-                this.$emit('input', startYear);
+                this.emitValue(startYear);
             }
         },
         blurDate: function(event) {
@@ -1759,13 +1767,14 @@ moqui.webrootVue.component('m-date-time', {
             // console.log("date/time unfocus val " + curVal);
             // if contains 'd ' (month/day missing, or month specified but date missing or partial) clear input
             // Sufficient to check for just 'd', since the mask handles any scenario where there would only be a single 'd'
-            if (curVal.indexOf('d') > 0) { this.$emit('input', ''); return; }
+            if (curVal.indexOf('d') > 0) { this.emitValue(''); return; }
             // default time to noon, or minutes to 00
-            if (curVal.indexOf('hh:mm') > 0) { this.$emit('input', curVal.replace('hh:mm', '12:00')); return; }
-            if (curVal.indexOf(':mm') > 0) { this.$emit('input', curVal.replace(':mm', ':00')); return; }
+            if (curVal.indexOf('hh:mm') > 0) { this.emitValue(curVal.replace('hh:mm', '12:00')); return; }
+            if (curVal.indexOf(':mm') > 0) { this.emitValue(curVal.replace(':mm', ':00')); return; }
         }
     },
     computed: {
+        curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; },
         formatVal: function() { var format = this.format; if (format && format.length) { return format; }
             return this.type === 'time' ? 'HH:mm' : (this.type === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm'); },
         inputMask: function() { var formatMask = this.formatVal; return formatMask.replace(/\w/g, '#') },
@@ -1857,7 +1866,7 @@ moqui.webrootVue.component('m-date-period', {
         '<template v-slot:prepend>' +
             '<q-icon name="event" class="cursor-pointer">' +
                 '<q-popup-proxy ref="qDateProxy" transition-show="scale" transition-hide="scale">' +
-                    '<q-date v-model="fields[name+\'_pdate\']" mask="YYYY-MM-DD" @input="function(){$refs.qDateProxy.hide()}"></q-date>' +
+                    '<q-date v-model="fields[name+\'_pdate\']" mask="YYYY-MM-DD" @update:model-value="function(){$refs.qDateProxy.hide()}"></q-date>' +
                 '</q-popup-proxy>' +
             '</q-icon>' +
         '</template>' +
@@ -1885,11 +1894,12 @@ moqui.webrootVue.component('m-date-period', {
 
 moqui.webrootVue.component('m-display', {
     name: "mDisplay",
-    props: { value:String, display:String, valueUrl:String, valueParameters:Object, dependsOn:Object, dependsOptional:Boolean, valueLoadInit:Boolean,
+    props: { value:String, modelValue:String, display:String, valueUrl:String, valueParameters:Object, dependsOn:Object, dependsOptional:Boolean, valueLoadInit:Boolean,
         fields:{type:Object}, tooltip:String, label:String, labelWrapper:Boolean, name:String, id:String },
+    emits: ['input', 'update:modelValue'],
     data: function() { return { curDisplay:this.display, loading:false } },
     template:
-        '<q-input v-if="labelWrapper" dense outlined readonly stack-label autogrow :value="displayValue" :label="label" :id="id" :name="name" :loading="loading">' +
+        '<q-input v-if="labelWrapper" dense outlined readonly stack-label autogrow :model-value="displayValue" :label="label" :id="id" :name="name" :loading="loading">' +
             '<q-tooltip v-if="tooltip">{{tooltip}}</q-tooltip>' +
         '</q-input>' +
         '<span v-else :id="id">' +
@@ -1897,6 +1907,7 @@ moqui.webrootVue.component('m-display', {
             '{{displayValue}}' +
         '</span>',
     methods: {
+        emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); },
         serverData: function() {
             var hasAllParms = true;
             var dependsOnMap = this.dependsOn;
@@ -1927,7 +1938,7 @@ moqui.webrootVue.component('m-display', {
             }
             if (!reqData.hasAllParms && !this.dependsOptional) {
                 console.warn("In m-display for " + this.name + "  tried to populateFromUrl but not hasAllParms and not dependsOptional");
-                this.$emit('input', null);
+                this.emitValue(null);
                 this.curDisplay = null;
                 return;
             }
@@ -1954,7 +1965,7 @@ moqui.webrootVue.component('m-display', {
 
                     if (moqui.isNumber(newValue)) { newValue = newValue.toString(); }
 
-                    vm.$emit('input', newValue);
+                    vm.emitValue(newValue);
                     if (vm.fields && vm.fields.length && vm.name && vm.name.length) { vm.fields[vm.name + "_display"] = newLabel; }
                     vm.curDisplay = newLabel;
                 }
@@ -1962,7 +1973,8 @@ moqui.webrootVue.component('m-display', {
         }
     },
     computed: {
-        displayValue: function() { return this.curDisplay && this.curDisplay.length ? this.curDisplay : this.value; }
+        curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; },
+        displayValue: function() { return this.curDisplay && this.curDisplay.length ? this.curDisplay : this.curValue; }
     },
     mounted: function() {
         if (this.valueUrl && this.valueUrl.length) {
@@ -1982,18 +1994,19 @@ moqui.webrootVue.component('m-display', {
 
 moqui.webrootVue.component('m-drop-down', {
     name: "mDropDown",
-    props: { value:[Array,String], options:{type:Array,'default':function(){return [];}}, combo:Boolean,
+    props: { value:[Array,String], modelValue:[Array,String], options:{type:Array,'default':function(){return [];}}, combo:Boolean,
         allowEmpty:Boolean, multiple:Boolean, requiredManualSelect:Boolean, submitOnSelect:Boolean,
         optionsUrl:String, optionsParameters:Object, optionsLoadInit:Boolean,
         serverSearch:Boolean, serverDelay:{type:Number,'default':300}, serverMinLength:{type:Number,'default':1},
         labelField:{type:String,'default':'label'}, valueField:{type:String,'default':'value'},
         dependsOn:Object, dependsOptional:Boolean, form:String, fields:{type:Object},
         tooltip:String, label:String, name:String, id:String, disable:Boolean, bgColor:String, onSelectGoTo:String },
+    emits: ['input', 'update:modelValue'],
     data: function() { return { curOptions:this.options, allOptions:this.options, lastVal:null, lastSearch:null, loading:false } },
     template:
         // was: ':fill-input="!multiple" hide-selected' changed to ':hide-selected="multiple"' to show selected to the left of input,
         //     fixes issues with fill-input where set values would sometimes not be displayed
-        '<q-select ref="qSelect" v-bind:value="value" v-on:input="handleInput($event)"' +
+        '<q-select ref="qSelect" :model-value="curValue" @update:model-value="handleInput($event)"' +
                 ' dense outlined options-dense use-input :hide-selected="multiple" :name="name" :id="id" :form="form"' +
                 ' input-debounce="500" @filter="filterFn" :clearable="allowEmpty||multiple" :disable="disable"' +
                 ' :multiple="multiple" :emit-value="!onSelectGoTo" map-options behavior="menu"' +
@@ -2002,7 +2015,7 @@ moqui.webrootVue.component('m-drop-down', {
             '<q-tooltip v-if="tooltip">{{tooltip}}</q-tooltip>' +
             '<template v-slot:no-option><q-item><q-item-section class="text-grey">No results</q-item-section></q-item></template>' +
             '<template v-if="multiple" v-slot:prepend><div>' +
-                '<q-chip v-for="valueEntry in value" :key="valueEntry" dense size="md" class="q-my-xs" removable @remove="removeValue(valueEntry)">{{optionLabel(valueEntry)}}</q-chip>' +
+                '<q-chip v-for="valueEntry in curValue" :key="valueEntry" dense size="md" class="q-my-xs" removable @remove="removeValue(valueEntry)">{{optionLabel(valueEntry)}}</q-chip>' +
             '</div></template>' +
             '<template v-slot:append><slot name="append"></slot></template>' +
             '<template v-slot:after>' +
@@ -2011,12 +2024,13 @@ moqui.webrootVue.component('m-drop-down', {
         '</q-select>',
         // TODO: how to add before slot pass through without the small left margin when nothing in the slot? <template v-slot:before><slot name="before"></slot></template>
     methods: {
+        emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); },
         handleInput: function($event) {
             // console.warn(this.onSelectGoTo + ": " + JSON.stringify($event));
             if (this.onSelectGoTo && this.onSelectGoTo.length) {
                 if ($event[this.onSelectGoTo]) this.$root.setUrl($event[this.onSelectGoTo]);
             } else {
-                this.$emit('input', $event);
+                this.emitValue($event);
             }
             if (this.submitOnSelect) {
                 var vm = this;
@@ -2151,14 +2165,14 @@ moqui.webrootVue.component('m-drop-down', {
         },
         setNewOptions: function(options) {
             this.curOptions = options;
-            if (this.multiple && this.allOptions && this.allOptions.length && this.value && this.value.length && moqui.isArray(this.value)) {
+            if (this.multiple && this.allOptions && this.allOptions.length && this.curValue && this.curValue.length && moqui.isArray(this.curValue)) {
                 // for multiple retain current value(s) in allOptions, at end of Array, so that in most cases already selected values are retained
                 var newAllOptions = options.slice();
-                for (var vi = 0; vi < this.value.length; vi++) {
-                    var curValue = this.value[vi];
+                for (var vi = 0; vi < this.curValue.length; vi++) {
+                    var curVal = this.curValue[vi];
                     for (var oi = 0; oi < this.allOptions.length; oi++) {
                         var curOption = this.allOptions[oi];
-                        if (curValue === curOption.value) newAllOptions.push(curOption);
+                        if (curVal === curOption.value) newAllOptions.push(curOption);
                     }
                 }
                 this.allOptions = newAllOptions;
@@ -2170,11 +2184,11 @@ moqui.webrootVue.component('m-drop-down', {
         checkCurrentValue: function(options) {
             // if cur value not in new options either clear it or set it to the new first option in list if !allowEmpty
             var isInNewOptions = false;
-            var valIsArray = moqui.isArray(this.value);
-            if (this.value && this.value.length && options) for (var i=0; i<options.length; i++) {
+            var valIsArray = moqui.isArray(this.curValue);
+            if (this.curValue && this.curValue.length && options) for (var i=0; i<options.length; i++) {
                 var curObj = options[i];
-                // console.warn("option val " + curObj.value + " cur value " + JSON.stringify(this.value) + " valIsArray " + valIsArray + " is in value " + (valIsArray ? this.value.includes(curObj.value) : curObj.value === this.value));
-                if (valIsArray ? this.value.includes(curObj.value) : curObj.value === this.value) {
+                // console.warn("option val " + curObj.value + " cur value " + JSON.stringify(this.curValue) + " valIsArray " + valIsArray + " is in value " + (valIsArray ? this.curValue.includes(curObj.value) : curObj.value === this.curValue));
+                if (valIsArray ? this.curValue.includes(curObj.value) : curObj.value === this.curValue) {
                     isInNewOptions = true;
                     break;
                 }
@@ -2185,10 +2199,10 @@ moqui.webrootVue.component('m-drop-down', {
                 if (!this.allowEmpty && !this.multiple && options && options.length && options[0].value && (!this.requiredManualSelect || (!this.submitOnSelect && options.length === 1))) {
                     // simulate normal select behavior with no empty option (not allowEmpty) where first value is selected by default
                     // console.warn("checkCurrentValue setting " + this.name + " to " + options[0].value + " options " + options.length);
-                    this.$emit('input', options[0].value);
+                    this.emitValue(options[0].value);
                 } else {
                     // console.warn("setting " + this.name + " to null");
-                    this.$emit('input', null);
+                    this.emitValue(null);
                 }
             }
         },
@@ -2202,14 +2216,14 @@ moqui.webrootVue.component('m-drop-down', {
             return "";
         },
         removeValue: function(value) {
-            var curValueArr = this.value;
+            var curValueArr = this.curValue;
             if (!moqui.isArray(curValueArr)) { console.warn("Tried to remove value from m-drop-down multiple " + this.name + " but value is not an Array"); return; }
             var newValueArr = [];
             for (var i = 0; i < curValueArr.length; i++) {
                 var valueEntry = curValueArr[i];
                 if (valueEntry !== value) newValueArr.push(valueEntry);
             }
-            if (curValueArr.length !== newValueArr.length) this.$emit('input', newValueArr);
+            if (curValueArr.length !== newValueArr.length) this.emitValue(newValueArr);
             // copied from handleInput method above
             if (this.submitOnSelect) {
                 var vm = this;
@@ -2223,8 +2237,9 @@ moqui.webrootVue.component('m-drop-down', {
                 vm.$nextTick(function() { vm.$parent.$parent.submitForm(); });
             }
         },
-        clearAll: function() { this.$emit('input', null); }
+        clearAll: function() { this.emitValue(null); }
     },
+    computed: { curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; } },
     mounted: function() {
         // TODO: handle combo somehow: if (this.combo) { opts.tags = true; opts.tokenSeparators = [',',' ']; }
 
@@ -2238,7 +2253,7 @@ moqui.webrootVue.component('m-drop-down', {
                     var vm = this;
                     this.$watch('fields.' + dependsOnMap[doParm], function() {
                         // in the case of dependency change clear current value
-                        vm.$emit('input', null);
+                        vm.emitValue(null);
                         vm.populateFromUrl({term:vm.lastSearch});
                     });
                 } else {
@@ -2248,12 +2263,12 @@ moqui.webrootVue.component('m-drop-down', {
             // do initial populate if not a serverSearch or for serverSearch if we have an initial value do the search so we don't display the ID
             if (this.optionsLoadInit) {
                 if (!this.serverSearch) { this.populateFromUrl(); }
-                else if (this.value && this.value.length && moqui.isString(this.value)) { this.populateFromUrl({term:this.value}); }
+                else if (this.curValue && this.curValue.length && moqui.isString(this.curValue)) { this.populateFromUrl({term:this.curValue}); }
             }
         }
         // simulate normal select behavior with no empty option (not allowEmpty) where first value is selected by default - but only do for 1 option to force user to think and choose from multiple
-        if (!this.multiple && !this.allowEmpty && (!this.value || !this.value.length) && this.options && this.options.length && (!this.requiredManualSelect || (!this.submitOnSelect && options.length === 1))) {
-            this.$emit('input', this.options[0].value);
+        if (!this.multiple && !this.allowEmpty && (!this.curValue || !this.curValue.length) && this.options && this.options.length && (!this.requiredManualSelect || (!this.submitOnSelect && this.options.length === 1))) {
+            this.emitValue(this.options[0].value);
         }
     }
     /* probably don't need, remove sometime:
@@ -2270,20 +2285,23 @@ moqui.webrootVue.component('m-drop-down', {
 
 moqui.webrootVue.component('m-text-line', {
     name: "mTextLine",
-    props: { value:String, type:{type:String,'default':'text'}, id:String, name:String, size:String, fields:{type:Object},
+    props: { value:String, modelValue:String, type:{type:String,'default':'text'}, id:String, name:String, size:String, fields:{type:Object},
         dense:Boolean, outlined:Boolean, bgColor:String,
         label:String, tooltip:String, prefix:String, disable:Boolean, mask:String, fillMask:String, reverseFillMask:Boolean, rules:Array,
         defaultUrl:String, defaultParameters:Object, dependsOn:Object, dependsOptional:Boolean, defaultLoadInit:Boolean },
+    emits: ['input', 'update:modelValue'],
     data: function() { return { loading:false } },
     template:
         '<q-input :dense="dense" :outlined="outlined" :bg-color="bgColor" stack-label :label="label" :prefix="prefix"' +
-                ' v-bind:value="value" v-on:input="$emit(\'input\', $event)" :type="type"' +
+                ' :model-value="curValue" @update:model-value="onModelValue" :type="type"' +
                 ' :id="id" :name="name" :size="size" :loading="loading" :rules="rules" :disable="disable"' +
                 ' :mask="mask" :fill-mask="fillMask" :reverse-fill-mask="reverseFillMask"' +
                 ' autocapitalize="off" autocomplete="off">' +
             '<q-tooltip v-if="tooltip">{{tooltip}}</q-tooltip>' +
         '</q-input>',
     methods: {
+        emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); },
+        onModelValue: function(value) { this.emitValue(value); },
         serverData: function() {
             var hasAllParms = true;
             var dependsOnMap = this.dependsOn;
@@ -2325,11 +2343,12 @@ moqui.webrootVue.component('m-text-line', {
                 },
                 success: function(defaultText) {
                     vm.loading = false;
-                    if (defaultText && defaultText.length) vm.$emit('input', defaultText);
+                    if (defaultText && defaultText.length) vm.emitValue(defaultText);
                 }
             });
         }
     },
+    computed: { curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; } },
     mounted: function() {
         if (this.defaultUrl && this.defaultUrl.length) {
             var dependsOnMap = this.dependsOn;
@@ -2394,8 +2413,11 @@ moqui.webrootVue.component('m-mermaid', {
 moqui.webrootVue.component('m-ck-editor', {
     name: 'mCkEditor',
     template:'<div><textarea ref="area"></textarea></div>',
-    props: { value:{type:String,'default':''}, useInline:Boolean, config:Object, readOnly:{type:Boolean,'default':null} },
+    props: { value:{type:String,'default':''}, modelValue:String, useInline:Boolean, config:Object, readOnly:{type:Boolean,'default':null} },
+    emits: ['input', 'update:modelValue'],
     data: function() { return { destroyed:false, ckeditor:null } },
+    computed: { curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; } },
+    methods: { emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); } },
     mounted: function() {
         var vm = this;
         moqui.loadScript('https://cdn.ckeditor.com/4.14.1/standard-all/ckeditor.js', function(err) {
@@ -2408,12 +2430,12 @@ moqui.webrootVue.component('m-ck-editor', {
             var method = vm.useInline ? 'inline' : 'replace';
             var editor = vm.ckeditor = CKEDITOR[method](vm.$refs.area, config);
             editor.on('instanceReady', function() {
-                var data = vm.value;
+                var data = vm.curValue;
                 editor.fire('lockSnapshot');
                 editor.setData(data, { callback: function() {
                     editor.on('change', function(evt) {
                         var curData = editor.getData();
-                        if (vm.value !== curData) vm.$emit('input', curData, evt, editor);
+                        if (vm.curValue !== curData) vm.emitValue(curData);
                     });
                     editor.on('focus', function(evt) { vm.$emit('focus', evt, editor); });
                     editor.on('blur', function(evt) { vm.$emit('blur', evt, editor); });
@@ -2421,8 +2443,8 @@ moqui.webrootVue.component('m-ck-editor', {
                     var newData = editor.getData();
                     // Locking the snapshot prevents the 'change' event. Trigger it manually to update the bound data.
                     if (data !== newData) {
-                        vm.$once('input', function() { vm.$emit('ready', editor); });
-                        vm.$emit('input', newData);
+                        vm.$emit('ready', editor);
+                        vm.emitValue(newData);
                     } else {
                         vm.$emit('ready', editor);
                     }
@@ -2436,7 +2458,7 @@ moqui.webrootVue.component('m-ck-editor', {
         this.destroyed = true;
     },
     watch: {
-        value: function(val) { if (this.ckeditor && this.ckeditor.getData() !== val) this.ckeditor.setData(val); },
+        curValue: function(val) { if (this.ckeditor && this.ckeditor.getData() !== val) this.ckeditor.setData(val); },
         readOnly: function(val) { if (this.ckeditor) this.ckeditor.setReadOnly( val ); }
     }
 });
@@ -2444,8 +2466,10 @@ moqui.webrootVue.component('m-ck-editor', {
 moqui.webrootVue.component('m-simple-mde', {
     name: 'mSimpleMde',
     template:'<div><textarea ref="area"></textarea></div>',
-    props: { value:{type:String,'default':''}, config:Object },
+    props: { value:{type:String,'default':''}, modelValue:String, config:Object },
+    emits: ['input', 'update:modelValue'],
     data: function() { return { simplemde:null } },
+    computed: { curValue: function() { return this.modelValue !== undefined ? this.modelValue : this.value; } },
     mounted: function() {
         var vm = this;
         moqui.loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/simplemde/1.11.2/simplemde.min.css');
@@ -2454,14 +2478,14 @@ moqui.webrootVue.component('m-simple-mde', {
             // needed? forceSync:true
             var fullConfig = Object.assign({
                 element: vm.$refs.area,
-                initialValue: vm.value
+                initialValue: vm.curValue
             }, vm.config);
             var editor = vm.simplemde = new SimpleMDE(fullConfig);
 
             editor.codemirror.on('change', function(instance, changeObj) {
                 if (changeObj.origin === 'setValue') return;
                 var val = editor.value();
-                vm.$emit('input', val);
+                vm.emitValue(val);
             });
             editor.codemirror.on('blur', function() {
                 var val = editor.value();
@@ -2471,7 +2495,8 @@ moqui.webrootVue.component('m-simple-mde', {
             vm.$nextTick(function() { vm.$emit('initialized', editor); });
         }, function() { return !!window.SimpleMDE; });
     },
-    watch: { value: function(val) { if (this.simplemde && this.simplemde.value() !== val) this.simplemde.value(val); } }
+    methods: { emitValue: function(value) { this.$emit('input', value); this.$emit('update:modelValue', value); } },
+    watch: { curValue: function(val) { if (this.simplemde && this.simplemde.value() !== val) this.simplemde.value(val); } }
 });
 
 /* ========== webrootVue - root Vue component with router ========== */
@@ -2484,7 +2509,7 @@ moqui.webrootVue.component('m-subscreens-tabs', {
     '</q-tabs><q-separator class="q-mb-md"></q-separator></div>',
      */
     template:
-    '<div v-if="subscreens.length > 1"><q-tabs dense no-caps align="left" active-color="primary" indicator-color="primary" :value="activeTab">' +
+    '<div v-if="subscreens.length > 1"><q-tabs dense no-caps align="left" active-color="primary" indicator-color="primary" :model-value="activeTab">' +
         '<q-tab v-for="tab in subscreens" :key="tab.name" :name="tab.name" :label="tab.title" :disable="tab.disableLink" @click.prevent="goTo(tab.pathWithParams)"></q-tab>' +
     '</q-tabs><q-separator class="q-mb-md"></q-separator></div>',
     methods: {
@@ -2582,31 +2607,30 @@ moqui.webrootVue.component('m-menu-nav-item', {
     name: "mMenuNavItem",
     props: { menuIndex:Number },
     template:
-    '<q-expansion-item v-if="navMenuItem && navMenuItem.subscreens && navMenuItem.subscreens.length" :value="true" :content-inset-level="0.3"' +
-            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down" :to="navMenuItem.pathWithParams" @input="go" @created="logPath">' +
+    '<q-expansion-item v-if="navMenuItem && navMenuItem.subscreens && navMenuItem.subscreens.length" :default-opened="true" :content-inset-level="0.3"' +
+            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down">' +
         '<template v-slot:header><m-menu-item-content :menu-item="navMenuItem" active></m-menu-item-content></template>' +
         '<template v-slot:default><m-menu-subscreen-item v-for="(subscreen, ssIndex) in navMenuItem.subscreens" :key="subscreen.name" :menu-index="menuIndex" :subscreen-index="ssIndex"></m-menu-subscreen-item></template>' +
     '</q-expansion-item>' +
-    '<q-expansion-item v-else-if="navMenuItem && navMenuItem.savedFinds && navMenuItem.savedFinds.length" :value="true" :content-inset-level="0.3"' +
-            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down" :to="navMenuItem.pathWithParams" @input="go">' +
+    '<q-expansion-item v-else-if="navMenuItem && navMenuItem.savedFinds && navMenuItem.savedFinds.length" :default-opened="true" :content-inset-level="0.3"' +
+            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down">' +
         '<template v-slot:header><m-menu-item-content :menu-item="navMenuItem" active></m-menu-item-content></template>' +
         '<template v-slot:default><q-expansion-item v-for="(savedFind, ssIndex) in navMenuItem.savedFinds" :key="savedFind.name"' +
-                ' :value="false" switch-toggle-side dense dense-toggle expand-icon="chevron_right" :to="savedFind.pathWithParams" @input="goPath(savedFind.pathWithParams)">' +
+                ' :default-opened="false" switch-toggle-side dense dense-toggle expand-icon="chevron_right" @click="goPath(savedFind.pathWithParams)">' +
             '<template v-slot:header><m-menu-item-content :menu-item="savedFind" :active="savedFind.active"></m-menu-item-content></template>' +
         '</q-expansion-item></template>' +
     '</q-expansion-item>' +
-    '<q-expansion-item v-else-if="menuIndex < (navMenuLength - 1)" :value="true" :content-inset-level="0.3"' +
-            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down" :to="navMenuItem.pathWithParams" @input="go">' +
+    '<q-expansion-item v-else-if="menuIndex < (navMenuLength - 1)" :default-opened="true" :content-inset-level="0.3"' +
+            ' switch-toggle-side dense dense-toggle expanded-icon="arrow_drop_down">' +
         '<template v-slot:header><m-menu-item-content :menu-item="navMenuItem" active></m-menu-item-content></template>' +
         '<template v-slot:default><m-menu-nav-item :menu-index="menuIndex + 1"></m-menu-nav-item></template>' +
     '</q-expansion-item>' +
-    '<q-expansion-item v-else-if="navMenuItem" :value="false" switch-toggle-side dense dense-toggle expand-icon="arrow_right" :to="navMenuItem.pathWithParams" @input="go">' +
+    '<q-expansion-item v-else-if="navMenuItem" :default-opened="false" switch-toggle-side dense dense-toggle expand-icon="arrow_right" @click="go">' +
         '<template v-slot:header><m-menu-item-content :menu-item="navMenuItem" active></m-menu-item-content></template>' +
     '</q-expansion-item>',
     methods: {
         go: function go() { this.$root.setUrl(this.navMenuItem.pathWithParams); },
-        goPath: function goPath(path) { this.$root.setUrl(path); },
-        logPath: function logPath() { console.log('navMenuItem.pathWithParams:', this.navMenuItem.pathWithParams); }
+        goPath: function goPath(path) { this.$root.setUrl(path); }
     },
     computed: {
         navMenuItem: function() { return this.$root.navMenuList[this.menuIndex]; },
@@ -2618,7 +2642,7 @@ moqui.webrootVue.component('m-menu-subscreen-item', {
     props: { menuIndex:Number, subscreenIndex:Number },
     template:
     '<m-menu-nav-item v-if="subscreen.active" :menu-index="menuIndex + 1"></m-menu-nav-item>' +
-    '<q-expansion-item v-else :value="false" switch-toggle-side dense dense-toggle expand-icon="arrow_right" :to="subscreen.pathWithParams" @input="go">' +
+    '<q-expansion-item v-else :default-opened="false" switch-toggle-side dense dense-toggle expand-icon="arrow_right" @click="go">' +
         '<template v-slot:header><m-menu-item-content :menu-item="subscreen"></m-menu-item-content></template>' +
     '</q-expansion-item>',
     methods: { go: function go() { this.$root.setUrl(this.subscreen.pathWithParams); } },
