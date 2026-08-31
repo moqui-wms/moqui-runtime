@@ -151,13 +151,13 @@ moqui.webrootVue = createApp({
             var contComp = this.activeContainers[contId];
             if (contComp) { contComp.hide(); } else { console.error("Container with ID " + contId + " not found, not hidding"); }},
 
-        addNavPlugin: function(url) { var vm = this; moqui.loadComponent(this.appRootPath + url, function(comp) { vm.navPlugins.push(comp); }) },
+        addNavPlugin: function(url) { var vm = this; moqui.loadComponent(this.appRootPath + url, function(comp) { vm.navPlugins.push(moqui.markRaw(comp)); }) },
         addNavPluginsWait: function(urlList, urlIndex) { if (urlList && urlList.length > urlIndex) {
             this.addNavPlugin(urlList[urlIndex]);
             var vm = this;
             if (urlList.length > (urlIndex + 1)) { setTimeout(function(){ vm.addNavPluginsWait(urlList, urlIndex + 1); }, 500); }
         } },
-        addAccountPlugin: function(url) { var vm = this; moqui.loadComponent(this.appRootPath + url, function(comp) { vm.accountPlugins.push(comp); }) },
+        addAccountPlugin: function(url) { var vm = this; moqui.loadComponent(this.appRootPath + url, function(comp) { vm.accountPlugins.push(moqui.markRaw(comp)); }) },
         addAccountPluginsWait: function(urlList, urlIndex) { if (urlList && urlList.length > urlIndex) {
             this.addAccountPlugin(urlList[urlIndex]);
             var vm = this;
@@ -442,18 +442,20 @@ moqui.webrootVue = createApp({
         this.sessionTokenBc = new BroadcastChannel("SessionToken");
         this.sessionTokenBc.onmessage = this.receiveBcCsrfToken;
 
-        var navPluginUrlList = [];
-        $('.confNavPluginUrl').each(function(idx, el) { navPluginUrlList.push($(el).val()); });
-        this.addNavPluginsWait(navPluginUrlList, 0);
-
-        var accountPluginUrlList = [];
-        $('.confAccountPluginUrl').each(function(idx, el) { accountPluginUrlList.push($(el).val()); });
-        this.addAccountPluginsWait(accountPluginUrlList, 0);
     },
     mounted: function() {
         var loadingEl = document.getElementById('apps-loading');
         if (loadingEl) loadingEl.remove();
         $("#apps-root").css("display", "initial");
+        // Register navbar/account plugins from the server-rendered hidden inputs.
+        // These inputs are rendered as part of the template, so they are only
+        // present once the component is mounted (not in created).
+        var navPluginUrlList = [];
+        $('.confNavPluginUrl').each(function(idx, el) { navPluginUrlList.push($(el).val()); });
+        this.addNavPluginsWait(navPluginUrlList, 0);
+        var accountPluginUrlList = [];
+        $('.confAccountPluginUrl').each(function(idx, el) { accountPluginUrlList.push($(el).val()); });
+        this.addAccountPluginsWait(accountPluginUrlList, 0);
         // load the current screen
         console.log("load the current screen");
         this.setUrl(window.location.pathname + window.location.search);
@@ -489,6 +491,7 @@ moqui.webrootVue.config.compilerOptions.whitespace = 'preserve'
 //moqui.webrootVue.config.compilerOptions.isCustomElement = (tag) => tag.startsWith('q-')
 
 moqui.urlExtensions = { js:'qjs2', vue:'qvue2', vuet:'qvt2' }
+moqui.markRaw = moqui.markRaw || Vue.markRaw;
 
 // simple stub for define if it doesn't exist (ie no require.js, etc); mimic pattern of require.js define()
 if (!window.define) window.define = function(name, deps, callback) {
@@ -650,6 +653,53 @@ moqui.handleLoadError = function (jqXHR, textStatus, errorThrown) {
 };
 // NOTE: this may eventually split to change the activeSubscreens only on currentPathList change (for screens that support it)
 //     and if ever needed some sort of data refresh if currentParameters changes
+// Load a .qvue2 (Vue 3) Single File Component using vue3-sfc-loader.
+// qvt2 runs Vue 3 + Quasar 2, so .qvue2 SFCs are compiled with vue3-sfc-loader
+// instead of the Vue 2 httpVueLoader used by the qvt (Vue 2) path.
+moqui.loadVue3Module = function(url, callback, bodyParameters) {
+    if (!(window['vue3-sfc-loader'] && window['vue3-sfc-loader'].loadModule)) { callback(moqui.NotFound); return; }
+    var fetchOptions = {};
+    if (bodyParameters && !$.isEmptyObject(bodyParameters)) {
+        fetchOptions.method = 'POST';
+        // jQuery's $.ajax({data:...}) encodes as application/x-www-form-urlencoded by
+        // default; mirror that here since fetch does not serialize a plain object.
+        fetchOptions.body = $.param(bodyParameters);
+        fetchOptions.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    }
+    // vue3-sfc-loader derives the SFC type from the URL extension, and '.qvue2' is not
+    // a recognised extension. So load the module under a virtual '.vue' URL while
+    // getFile fetches the real '.qvue2' content. This keeps the vendored loader intact.
+    var virtualUrl = url.replace(/\.qvue2$/, '.vue');
+    var getFile = async function(fileUrl) {
+        var realUrl = fileUrl.replace(/\.vue$/, '.qvue2');
+        var res = await fetch(realUrl, fetchOptions);
+        if (res.status === 205) {
+            var redirectTo = res.headers.get('X-Redirect-To');
+            console.log('loading component vue redirectTo', redirectTo);
+            moqui.webrootVue.setUrl(redirectTo);
+            return '';
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' loading ' + realUrl);
+        return await res.text();
+    };
+    var options = {
+        moduleCache: { vue: Vue },
+        getFile: getFile,
+        addStyle: function(text) {
+            var style = document.createElement('style');
+            style.textContent = text;
+            document.head.appendChild(style);
+        }
+    };
+    window['vue3-sfc-loader'].loadModule(virtualUrl, options).then(function(comp) {
+        if (comp) { moqui.componentCache.put(url, comp); callback(comp); }
+        else { callback(moqui.NotFound); }
+    }).catch(function(err) {
+        console.error('Error loading .qvue2 module ' + url, err);
+        callback(moqui.NotFound);
+    });
+};
+
 moqui.loadComponent = function(urlInfo, callback, divId) {
     var jsExt = moqui.urlExtensions.js, vueExt = moqui.urlExtensions.vue, vuetExt = moqui.urlExtensions.vuet;
 
@@ -691,6 +741,11 @@ moqui.loadComponent = function(urlInfo, callback, divId) {
     if (urlInfo.renderModes && urlInfo.renderModes.indexOf(vueExt) >= 0) url += ('.' + vueExt);
     if (url.slice(-vueExt.length) === vueExt) {
         console.info("loadComponent vue " + url + (divId ? " id " + divId : ''));
+        // Use vue3-sfc-loader for .qvue2 (Vue 3) components; httpVueLoader is Vue 2 only.
+        if (window['vue3-sfc-loader'] && window['vue3-sfc-loader'].loadModule) {
+            moqui.loadVue3Module(url, function(comp) { callback(comp); }, bodyParameters);
+            return;
+        }
         var vueAjaxSettings = { type:"GET", url:url, error:moqui.handleLoadError, success: function(resp, status, jqXHR) {
                 if (jqXHR.status === 205) {
                     var redirectTo = jqXHR.getResponseHeader("X-Redirect-To")
