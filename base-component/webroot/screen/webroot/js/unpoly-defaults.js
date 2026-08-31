@@ -570,7 +570,11 @@
         tooltipElements.forEach(function(el) {
             var $el = $(el);
             if ($el.data('bs.tooltip')) return;
-            $el.tooltip({ placement: 'auto top' });
+            // Placement must be a valid Bootstrap 5 value. 'auto top' was a Bootstrap 3
+            // string that Bootstrap 5's Popper-based Tooltip mishandles (its offset
+            // modifier then reads an undefined .x and throws). Omit placement so each
+            // element's data-bs-placement (or Bootstrap 5's default 'top') is used.
+            $el.tooltip();
         });
     }
 
