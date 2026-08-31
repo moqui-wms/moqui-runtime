@@ -315,14 +315,58 @@
         if (Array.isArray(list) && list.indexOf(value) === -1) list.push(value);
     }
 
+    // Mirrors the Vuet/Vue m-script + m-stylesheet handling. In the Vue UIs the server
+    // returns plain <script>/<link> and the client converts them to <m-script>/<m-stylesheet
+    // which load external scripts via moqui.loadScript() and eval inline scripts via
+    // moqui.retryInlineScript() (retries until dependencies are ready). Unpoly also receives
+    // plain <script>/<link> from the server, but on fragment navigation it runs inline scripts
+    // before external plugin scripts finish loading, so any script that depends on an external
+    // library fails. We therefore stop Unpoly from running scripts natively and process them here
+    // with the same ordering-safe helpers (loadScript for src, retryInlineScript for inline,
+    // loadStylesheet for <link>). This keeps the screen markup identical across all UIs and
+    // avoids per-screen render-mode branching.
+    function processFragmentScripts(root) {
+        if (!root || !root.querySelectorAll) return;
+        if (!(window.moqui && window.moqui.loadScript)) return;
+
+        root.querySelectorAll('link[rel="stylesheet"][href]').forEach(function(link) {
+            if (link.dataset.moquiStylesheet === '1') return;
+            link.dataset.moquiStylesheet = '1';
+            moqui.loadStylesheet(link.href);
+        });
+
+        root.querySelectorAll('script').forEach(function(script) {
+            if (script.dataset.moquiScript === '1') return;
+            // Skip non-executable data scripts (e.g. <script type="application/json">, <template>)
+            // that only carry data and must not be eval'd. runScripts=false means Unpoly already
+            // re-typed every executable JS script to 'up-disabled-script', so treat that as executable;
+            // data scripts keep their own type and are skipped.
+            var t = (script.getAttribute('type') || '').toLowerCase();
+            var isExecutable = t === '' || t === 'up-disabled-script' || t === 'text/javascript' ||
+                t === 'application/javascript' || t === 'module' || t === 'importmap';
+            if (!isExecutable) return;
+            script.dataset.moquiScript = '1';
+            if (script.src) {
+                moqui.loadScript(script.src);
+            } else if (script.textContent && script.textContent.trim().length > 0) {
+                moqui.retryInlineScript(script.textContent, 1);
+            }
+        });
+    }
+
     function initUnpolyDefaults() {
         if (!window.up || window.__moquiUnpolyDefaultsInit) return;
         window.__moquiUnpolyDefaultsInit = true;
 
-        if (up.fragment && up.fragment.config && Array.isArray(up.fragment.config.mainTargets)) {
-            ['[up-main]', '#content', 'main'].forEach(function(target) {
-                pushUnique(up.fragment.config.mainTargets, target);
-            });
+        if (up.fragment && up.fragment.config) {
+            if (Array.isArray(up.fragment.config.mainTargets)) {
+                ['[up-main]', '#content', 'main'].forEach(function(target) {
+                    pushUnique(up.fragment.config.mainTargets, target);
+                });
+            }
+            // Run scripts ourselves (see processFragmentScripts) so they execute after their
+            // external dependencies are ready instead of racing them on fragment swap.
+            up.fragment.config.runScripts = false;
         }
 
         if (up.layer && up.layer.config) {
@@ -368,6 +412,10 @@
         });
 
         document.addEventListener('up:fragment:inserted', function(event) {
+            // Run the fragment's scripts ordering-safely (loadScript for src, retryInlineScript
+            // for inline) before initializing its widgets, mirroring the m-script handling in the
+            // Vue UIs.
+            processFragmentScripts(event && event.target);
             // For app-injected navbar elements (e.g. marble's org menu):
             // if the inline jQuery script couldn't move them (because stale copies exist
             // in the navbar), move them here after insertion.
