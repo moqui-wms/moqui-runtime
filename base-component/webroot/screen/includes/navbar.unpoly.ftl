@@ -2,16 +2,9 @@
 <#assign currentScreenUrl = sri.getScreenUrlInstance().getUrlWithParams()>
 <#assign currentScreenTitle = html_title!(ec.resource.expand(sri.screenUrlInfo.targetScreen.getDefaultMenuName()!"Page", ""))>
 
-<nav class="moqui-topbar navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="moqui-topbar navbar navbar-expand-md navbar-dark bg-dark">
   <div class="container-fluid moqui-topbar__inner">
     <div class="moqui-topbar__brand-zone">
-      <button class="navbar-toggler moqui-topbar__toggler" type="button"
-              data-bs-toggle="collapse" data-bs-target="#navbar-collapse"
-              aria-controls="navbar-collapse" aria-expanded="false"
-              aria-label="${ec.l10n.localize('Toggle navigation')}">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
       <#assign headerLogoList = sri.getThemeValues("STRT_HEADER_LOGO")>
       <#if headerLogoList?has_content>
         <a href="${sri.buildUrl('/uapps').getUrl()}"
@@ -157,6 +150,12 @@
         </a>
       </div>
     </div>
+    <button class="navbar-toggler moqui-topbar__toggler" type="button"
+            data-bs-toggle="collapse" data-bs-target="#navbar-collapse"
+            aria-controls="navbar-collapse" aria-expanded="false"
+            aria-label="${ec.l10n.localize('Toggle navigation')}">
+      <span class="navbar-toggler-icon"></span>
+    </button>
   </div>
 </nav>
 

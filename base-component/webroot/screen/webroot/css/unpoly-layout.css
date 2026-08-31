@@ -1154,6 +1154,18 @@ body.hide-nav {
     min-height: 48px;
 }
 
+/* on narrow widths the toggler is the only right-hand control; push it to the
+   end so it reads as a single actions button (mirrors the apps navbar) */
+.moqui-topbar__toggler {
+    margin-left: auto;
+}
+
+/* the topbar is light in both modes, so the default navbar-dark (white)
+   hamburger is invisible; force a dark hamburger */
+.moqui-topbar__toggler .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2833,37,41,0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
 .moqui-topbar__brand-zone {
     display: flex;
     align-items: center;
@@ -1289,6 +1301,41 @@ body.hide-nav {
 .moqui-topbar__icon-btn .fa {
     font-size: 0.9rem;
 }
+
+/* navbar actions button that carries a count: icon + count pill, width grows
+   with the count so the number has padding and never hugs the edge */
+.moqui-topbar__count-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 34px;
+    padding: 0 0.65rem;
+    border-radius: 999px;
+    border-width: 1px;
+    background: transparent;
+    text-decoration: none;
+}
+.moqui-topbar__count-btn:hover { text-decoration: none; }
+
+.moqui-topbar__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    border-radius: 999px;
+}
+
+/* light/dark theming for the count actions (mirror .moqui-topbar__icon-btn) */
+body.bg-light .moqui-topbar__count-btn { color: var(--ink-medium); border-color: rgba(0, 0, 0, 0.12); background: transparent; }
+body.bg-light .moqui-topbar__count-btn:hover { color: var(--accent-primary); background-color: var(--accent-primary-soft); border-color: var(--accent-primary); }
+body.bg-dark .moqui-topbar__count-btn { color: var(--ink-medium); border-color: var(--paper-edge); }
+body.bg-dark .moqui-topbar__count-btn:hover { color: var(--accent-primary); background-color: var(--accent-primary-soft); border-color: var(--accent-primary); }
 
 .moqui-topbar__dropdown .dropdown-menu {
     margin-top: 0.75rem;
