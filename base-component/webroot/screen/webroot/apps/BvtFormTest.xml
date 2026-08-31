@@ -24,6 +24,12 @@ along with this software (see the LICENSE.md file). If not, see
         </actions>
         <default-response type="screen" url="."/>
     </transition>
+    <transition name="bvtEditable">
+        <actions>
+            <set field="resultMessage" from="'Edited: ' + (value ?: '')"/>
+        </actions>
+        <default-response type="screen" url="."/>
+    </transition>
 
     <widgets>
         <container style="bvt-form-test">
@@ -38,6 +44,11 @@ along with this software (see the LICENSE.md file). If not, see
                 <field name="active"><default-field title="Active"><check/></default-field></field>
                 <field name="gender"><default-field title="Gender"><radio><option key="M" text="Male"/><option key="F" text="Female"/></radio></default-field></field>
                 <field name="startDate"><default-field title="Start Date"><date-time type="date"/></default-field></field>
+                <field name="findName"><default-field title="Find Name"><text-find/></default-field></field>
+                <field name="findStart"><default-field title="Find Start"><date-find/></default-field></field>
+                <field name="findQty"><default-field title="Find Qty"><range-find/></default-field></field>
+                <field name="docFile"><default-field title="Document"><file/></default-field></field>
+                <field name="editableText"><default-field title="Editable"><editable text="Click to edit" transition="bvtEditable"/></default-field></field>
                 <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
                 <field name="resetButton"><default-field title="Reset"><reset/></default-field></field>
             </form-single>
