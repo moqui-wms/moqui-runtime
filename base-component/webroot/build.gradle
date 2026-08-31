@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
 
 def webrootPath = "screen/webroot"
 def libsPath = webrootPath + "/libs"
-def downloadBase = "http://cdnjs.cloudflare.com/ajax/libs/"
+def downloadBase = "https://cdnjs.cloudflare.com/ajax/libs/"
 def fileMap = [
     "rsvp/4.8.3/rsvp.min.js":"",
 
@@ -80,7 +80,10 @@ def fileMap = [
     "typeahead.js/0.11.1/typeahead.jquery.min.js":"",
 
     "vue/2.7.14/vue.js":"",
-    "vue/2.7.14/vue.min.js":""
+    "vue/2.7.14/vue.min.js":"",
+    "vue/3.4.7/vue.global.js":"",
+    "vue/3.4.7/vue.global.prod.min.js":"",
+    "vue-router/4.5.0/vue-router.global.js":""
 ]
 
 def jsdelivrBase = "https://cdn.jsdelivr.net/npm/"
@@ -89,7 +92,9 @@ def jsdelivrList = [
     "quasar@1.22.10/dist/quasar.umd.min.js",
     "unpoly@3.10.2/unpoly.css",
     "unpoly@3.10.2/unpoly.js"
-]
+,
+    "quasar@2.16.5/dist/quasar.prod.css", "quasar@2.16.5/dist/quasar.umd.prod.js", "vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.min.js"]
+
 
 String getTargetPath(String sourcePath, String targetPath) {
     if (!targetPath) {
@@ -167,6 +172,8 @@ htmlJs.add(libsPath + '/jstree/jstree.min.js')
 def vuetJs = []
 // Vue JS
 vuetJs.add(libsPath + '/vue/vue.min.js')
+// Vue3 JS
+vuetJs.add(libsPath + '/vue/vue.global.prod.min.js')
 // http-vue-loader
 vuetJs.add(webrootPath + '/js/http-vue-loader/httpVueLoader.js')
 // Vue root component instance, in footer so runs after page loaded
