@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This software is in the public domain under CC0 1.0 Universal plus a
+Grant of Patent License.
+
+To the extent possible under law, the author(s) have dedicated all
+copyright and related and neighboring rights to this software to the
+public domain worldwide. This software is distributed without any
+warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication
+along with this software (see the LICENSE.md file). If not, see
+<http://creativecommons.org/publicdomain/zero/1.0/>.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        require-authentication="anonymous-view" default-menu-include="false" default-menu-title="bvt Form Test">
+
+    <parameter name="resultMessage"/>
+
+    <transition name="bvtFormTestSubmit">
+        <actions>
+            <set field="resultMessage" from="'Submitted ' + (color ?: '?') + ' / ' + (active ? 'on' : 'off')"/>
+        </actions>
+        <default-response type="screen" url="."/>
+    </transition>
+
+    <widgets>
+        <container style="bvt-form-test">
+            <label text="bvt Form-Single Test (compare /bapps vs /qapps2)" type="h2"/>
+
+            <form-single name="BvtTestForm" transition="bvtFormTestSubmit">
+                <field name="firstName"><default-field title="First Name"><text-line size="30"/></default-field></field>
+                <field name="lastName"><default-field title="Last Name"><text-line size="30"/></default-field></field>
+                <field name="bio"><default-field title="Bio"><text-area rows="3"/></default-field></field>
+                <field name="password"><default-field title="Password"><password/></default-field></field>
+                <field name="color"><default-field title="Color"><drop-down><option key="red" text="Red"/><option key="green" text="Green"/><option key="blue" text="Blue"/></drop-down></default-field></field>
+                <field name="active"><default-field title="Active"><check/></default-field></field>
+                <field name="gender"><default-field title="Gender"><radio><option key="M" text="Male"/><option key="F" text="Female"/></radio></default-field></field>
+                <field name="startDate"><default-field title="Start Date"><date-time type="date"/></default-field></field>
+                <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+                <field name="resetButton"><default-field title="Reset"><reset/></default-field></field>
+            </form-single>
+
+            <label text="${resultMessage}" type="text"/>
+        </container>
+    </widgets>
+</screen>
