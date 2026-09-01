@@ -1,0 +1,10 @@
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+    <service verb="validate" noun="BvtNumber" authenticate="anonymous-view">
+        <in-parameters>
+            <parameter name="rangeValue">
+                <number-range min="10" max="20" message="Enter a number from 10 through 20"/>
+            </parameter>
+        </in-parameters>
+    </service>
+</services>

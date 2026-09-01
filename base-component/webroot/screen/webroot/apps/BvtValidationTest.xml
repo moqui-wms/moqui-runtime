@@ -1,0 +1,33 @@
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        require-authentication="anonymous-view" default-menu-include="false" default-menu-title="bvt Validation Test">
+
+    <parameter name="resultMessage"/>
+
+    <transition name="bvtValidationSubmit">
+        <actions>
+            <if condition="serverValue == 'bad'">
+                <script>ec.message.addValidationError("BvtValidationForm", "serverValue", "bvt.validation", "Server-side validation failed", null)</script>
+            </if>
+            <set field="resultMessage" from="'Valid submit'"/>
+        </actions>
+        <default-response type="screen" url="."/>
+    </transition>
+
+    <widgets>
+        <container style="bvt-validation-test">
+            <label text="bvt Validation Test" type="h2"/>
+            <label text="Required, length, range, format, and server-side field errors" type="text"/>
+            <form-single name="BvtValidationForm" transition="bvtValidationSubmit">
+                <field name="username"><default-field title="Required Username" validate-service="org.moqui.impl.UserServices.create#UserAccount" validate-parameter="username"><text-line/></default-field></field>
+                <field name="wikiSpaceId"><default-field title="Wiki Space ID (3-8 letters/digits)" validate-service="org.moqui.impl.WikiServices.create#WikiSpace"><text-line/></default-field></field>
+                <field name="emailAddress"><default-field title="Email" validate-service="org.moqui.impl.UserServices.create#UserAccount" validate-parameter="emailAddress"><text-line/></default-field></field>
+                <field name="testNumberInteger"><default-field title="Integer" validate-entity="moqui.test.TestEntity"><text-line/></default-field></field>
+                <field name="rangeValue"><default-field title="Range (10-20)" validate-service="webroot.BvtValidationServices.validate#BvtNumber"><text-line/></default-field></field>
+                <field name="serverValue"><default-field title="Server Error Probe"><text-line/></default-field></field>
+                <field name="submitButton"><default-field title="Submit"><submit/></default-field></field>
+            </form-single>
+            <label text="${resultMessage}" type="text"/>
+        </container>
+    </widgets>
+</screen>
