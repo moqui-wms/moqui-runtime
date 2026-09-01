@@ -36,7 +36,10 @@ along with this software (see the LICENSE.md file). If not, see
         <parameter name="code"/>
         <actions>
             <set field="loggedIn" from="ec.user.loginUser(username, password)"/>
-            <if condition="ec.message.hasError()"><script>ec.web.sendJsonResponse([loggedIn:false])</script></if>
+            <if condition="ec.message.hasError()">
+                <script>ec.web.sendJsonError(401, ec.message.errorsString, null)</script>
+                <return/>
+            </if>
 
             <if condition="ec.web.sessionAttributes.moquiAuthcFactorRequired"><then>
                 <if condition="code"><then>
