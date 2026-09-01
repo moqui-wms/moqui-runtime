@@ -17,7 +17,7 @@ along with this software (see the LICENSE.md file). If not, see
     <!-- NOTE: require-authentication=false is required to allow sub-screens to decide. -->
 
     <!-- Override html render template for all screens under /uapps -->
-    <macro-template type="html" location="component://webroot/template/screen-macro/DefaultScreenMacros.unpoly.ftl"/>
+    <macro-template type="html" location="runtime://template/screen-macro/DefaultScreenMacros.unpoly.ftl"/>
 
     <transition name="ScreenTree"><default-response url="../ScreenTree"/></transition>
     <transition name="setPreference">
