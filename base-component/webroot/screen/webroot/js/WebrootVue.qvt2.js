@@ -18,7 +18,7 @@
  * -
  */
 
-const { createApp, defineComponent } = Vue
+const { createApp, defineComponent, h } = Vue
 
 moqui.webrootVue = createApp({
     data() { return { basePath:"", linkBasePath:"", currentPathList:[], extraPathList:[], currentParameters:{}, bodyParameters:null,
@@ -1134,7 +1134,7 @@ moqui.webrootVue.component('m-editable', {
         }
         // TODO, replace with something in quasar: $(this.$el).editable(this.url, edConfig);
     },
-    render: function(createEl) { return createEl(this.labelType, { attrs:{ id:this.id, 'class':'editable-label' }, domProps: { innerHTML:this.labelValue } }); }
+    render: function() { return h(this.labelType, { id:this.id, class:'editable-label', innerHTML:this.labelValue }); }
 });
 
 /* ========== form components ========== */

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    XML Screen schema parity fixture. Render this screen with /qapps2 and /bapps
+    and compare the same server-rendered widget tree. It intentionally exercises
+    the structural, form, list, tree, dynamic, and extension-node paths.
+-->
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        require-authentication="anonymous-view" default-menu-include="false"
+        default-menu-title="XML Screen Parity Test">
+    <subscreens>
+        <subscreens-item name="fragment" location="component://webroot/screen/webroot/apps/BvtStructureFragment.xml"/>
+    </subscreens>
+
+    <transition name="loadFragment">
+        <default-response url="fragment"/>
+    </transition>
+    <transition name="saveParityForm">
+        <actions><set field="parityResult" from="'form submitted'"/></actions>
+        <default-response url="."/>
+    </transition>
+    <transition name="saveParityRows">
+        <actions><set field="parityResult" from="'rows submitted'"/></actions>
+        <default-response url="."/>
+    </transition>
+    <transition name="saveSelectedRow">
+        <actions><set field="parityResult" from="'selected row submitted'"/></actions>
+        <default-response url="."/>
+    </transition>
+    <transition name="editParityLabel">
+        <actions><set field="parityResult" from="'edited: ' + (value ?: '')"/></actions>
+        <default-response url="."/>
+    </transition>
+    <transition name="loadParityOptions" read-only="true">
+        <actions><script>ec.web.sendJsonResponse([[value:'remote-a',label:'Remote A'],[value:'remote-b',label:'Remote B']])</script></actions>
+        <default-response type="none"/>
+    </transition>
+
+    <actions>
+        <set field="parityRows" from="[[rowId:'row-1',rowTitle:'First row',rowAmount:12],[rowId:'row-2',rowTitle:'Second row',rowAmount:34],[rowId:'row-3',rowTitle:'Third row',rowAmount:56]]"/>
+        <set field="parityRowsCount" from="parityRows.size()"/>
+        <set field="parityRowsPageIndex" from="0"/>
+        <set field="parityRowsPageSize" from="20"/>
+        <set field="parityRowsPageMaxIndex" from="0"/>
+        <set field="parityRowsPageRangeLow" from="0"/>
+        <set field="parityRowsPageRangeHigh" from="0"/>
+        <set field="parityResult" value="ready"/>
+        <set field="parityOptions" from="[[value:'list-a',label:'List A'],[value:'list-b',label:'List B']]"/>
+        <set field="parityTreeRoots" from="['Tree A','Tree B']"/>
+        <set field="textValue" value="initial text"/>
+        <set field="areaValue" value="initial area"/>
+        <set field="passwordValue" value="secret"/>
+        <set field="selectValue" value="green"/>
+        <set field="multiValue" from="['red','blue']"/>
+        <set field="checkValue" value="Y"/>
+        <set field="radioValue" value="second"/>
+        <set field="dateValue" value="2024-01-02"/>
+        <set field="dateTimeValue" value="2024-01-02 03:04"/>
+        <set field="timeValue" value="03:04"/>
+        <set field="timestampValue" value="2024-01-02 03:04:05"/>
+        <set field="entityUserId" value="john.doe"/>
+        <set field="displayValue" value="display value"/>
+        <set field="dependsMode" value="show"/>
+        <entity-find entity-name="moqui.security.UserLoginHistory" list="dateFilterRows" limit="1" paginate="false"><date-filter/></entity-find>
+    </actions>
+
+    <widgets>
+        <container id="bvt-xml-screen-parity" style="bvt-xml-screen-parity">
+            <label id="parity-heading" text="XML Screen Element Parity (compare /qapps2 vs /bapps)" type="h2"/>
+            <label text="${parityResult}" type="span" display-if-empty="true"/>
+
+            <render-mode>
+                <text type="bvt">Render-mode text is active in bvt.</text>
+                <text type="qvt2">Render-mode text is active in qvt2.</text>
+            </render-mode>
+            <text type="bvt">Direct text widget is active in bvt.</text>
+
+            <container-row id="parity-row">
+                <row-col id="parity-left" xs="12" md="6"><label text="Left responsive column" type="strong"/></row-col>
+                <row-col id="parity-right" xs="12" md="6"><label text="Right responsive column" type="strong"/></row-col>
+            </container-row>
+
+            <container-box id="parity-box" type="success" initial="open">
+                <box-header title="Box header"><label text="Header child" type="span"/></box-header>
+                <box-toolbar><link url="." text="Toolbar link" link-type="anchor"/></box-toolbar>
+                <box-body height="120"><label text="Box body child" type="p"/></box-body>
+            </container-box>
+
+            <container-panel id="parity-panel">
+                <panel-header><label text="Panel header" type="h4"/></panel-header>
+                <panel-left size="140"><label text="Panel left" type="span"/></panel-left>
+                <panel-center><label text="Panel center" type="span"/></panel-center>
+                <panel-right size="140"><label text="Panel right" type="span"/></panel-right>
+                <panel-footer><label text="Panel footer" type="span"/></panel-footer>
+            </container-panel>
+
+            <container-dialog id="parity-static-dialog" button-text="Open static dialog" title="Static dialog" width="520">
+                <label text="Static dialog child" type="p"/>
+            </container-dialog>
+            <dynamic-dialog id="parity-dynamic-dialog" transition="loadFragment" button-text="Open dynamic dialog" title="Dynamic dialog" width="520"/>
+            <dynamic-container id="parity-dynamic-container" transition="loadFragment"/>
+
+            <button-menu text="Button menu" icon="fa fa-bars" btn-type="default">
+                <link url="." text="Menu anchor" link-type="anchor"/>
+                <link url="." text="Menu form" link-type="hidden-form"/>
+            </button-menu>
+            <link id="parity-link" url="." text="Anchor link" link-type="anchor" icon="fa fa-link" badge="1" tooltip="Anchor tooltip"/>
+            <link id="parity-form-link" url="." text="Hidden form link" link-type="hidden-form"/>
+            <image id="parity-image" url="/ssstatic/images/Shipping.png" url-type="plain" width="32" height="32" alt="Shipping" hover="true"/>
+            <editable id="parity-editable" text="Editable parity label" transition="editParityLabel"/>
+
+            <section name="parity-local-section"><widgets><label text="Local section child" type="p"/></widgets></section>
+            <section-iterate name="parity-iterate-section" list="parityRows" paginate="false"><widgets><label text="Section iterate child" type="p"/></widgets></section-iterate>
+            <section-include name="included-section" location="component://webroot/screen/webroot/apps/BvtStructureInclude.xml"/>
+            <include-screen location="component://webroot/screen/webroot/apps/BvtStructureInclude.xml"/>
+
+            <tree name="ParityTree">
+                <tree-node name="ParityTreeNode"><label text="${nodeList_entry}" type="span"/></tree-node>
+                <tree-sub-node node-name="ParityTreeNode" list="parityTreeRoots"/>
+            </tree>
+
+            <!-- Unknown extension nodes intentionally contain known children. -->
+            <chart id="parity-unknown-chart" type="bar"><label text="Unknown chart child preserved" type="span"/></chart>
+            <mermaid id="parity-unknown-mermaid"><label text="Unknown mermaid child preserved" type="span"/></mermaid>
+
+            <form-single name="BvtXmlParityForm" transition="saveParityForm">
+                <field name="textValue"><default-field title="Text line"><text-line size="24" maxlength="80"/></default-field></field>
+                <field name="areaValue"><default-field title="Text area"><text-area rows="2" maxlength="120"/></default-field></field>
+                <field name="passwordValue"><default-field title="Password"><password maxlength="40"/></default-field></field>
+                <field name="selectValue"><default-field title="Static drop-down"><drop-down><option key="red" text="Red"/><option key="green" text="Green"/><option key="blue" text="Blue"/></drop-down></default-field></field>
+                <field name="multiValue"><default-field title="Multi drop-down"><drop-down allow-empty="true" allow-multiple="true"><option key="red" text="Red"/><option key="green" text="Green"/><option key="blue" text="Blue"/></drop-down></default-field></field>
+                <field name="listValue"><default-field title="List options"><drop-down allow-empty="true"><list-options list="parityOptions" key="${value}" text="${label}"/></drop-down></default-field></field>
+                <field name="checkValue"><default-field title="Check"><check/></default-field></field>
+                <field name="checkSetValue"><default-field title="Check set"><check><option key="one" text="One"/><option key="two" text="Two"/></check></default-field></field>
+                <field name="radioValue"><default-field title="Radio"><radio><option key="first" text="First"/><option key="second" text="Second"/></radio></default-field></field>
+                <field name="dateValue"><default-field title="Date"><date-time type="date"/></default-field></field>
+                <field name="dateTimeValue"><default-field title="Date and time"><date-time type="date-time"/></default-field></field>
+                <field name="timeValue"><default-field title="Time"><date-time type="time"/></default-field></field>
+                <field name="timestampValue"><default-field title="Timestamp"><date-time type="timestamp"/></default-field></field>
+                <field name="periodValue"><default-field title="Date period"><date-period time="true"/></default-field></field>
+                <field name="findText"><default-field title="Text find"><text-find/></default-field></field>
+                <field name="findDate"><default-field title="Date find"><date-find type="date"/></default-field></field>
+                <field name="findRange"><default-field title="Range find"><range-find/></default-field></field>
+                <field name="displayValue"><default-field title="Display"><display also-hidden="false"/></default-field></field>
+                <field name="entityUserId"><default-field title="Display entity"><display-entity entity-name="moqui.security.UserAccount" key-field-name="userId" default-text="Unknown user" also-hidden="false"/></default-field></field>
+                <field name="templateValue"><default-field title="Widget template"><widget-template-include location="component://webroot/template/screen/BasicWidgetTemplates.xml#enumDropDown"><set field="enumId" value="UserAuthcMethod"/></widget-template-include></default-field></field>
+                <field name="dynamicValue"><default-field title="Dynamic options"><drop-down allow-empty="true"><dynamic-options transition="loadParityOptions" min-length="0"/></drop-down></default-field></field>
+                <field name="visibleValue"><default-field title="Visible when show"><visible-when field="dependsMode" value="show"/><text-line/></default-field></field>
+                <field name="hiddenValue"><default-field title="Hidden widget"><hidden default-value="hidden"/></default-field></field>
+                <field name="ignoredValue"><default-field title="Ignored widget"><ignored/></default-field></field>
+                <field name="documentFile"><default-field title="File"><file accept="text/plain" multiple="true"/></default-field></field>
+                <field name="autoWidgetEntity"><default-field title="Auto entity widget"><auto-widget-entity entity-name="moqui.security.UserAccount" field-name="userId" field-type="find-display"/></default-field></field>
+                <auto-fields-entity entity-name="moqui.security.UserAccount" include="pk" field-type="display"/>
+                <auto-fields-service service-name="org.moqui.impl.UserServices.create#UserAccount" include="in" field-type="display"/>
+                <field name="autoWidgetService"><default-field title="Auto service widget"><auto-widget-service service-name="org.moqui.impl.UserServices.create#UserAccount" parameter-name="username" field-type="display"/></default-field></field>
+                <field name="submitParity"><default-field title="Submit"><submit text="Save parity form"/></default-field></field>
+                <field name="resetParity"><default-field title="Reset"><reset/></default-field></field>
+            </form-single>
+
+            <form-list name="BvtXmlParityList" list="parityRows" transition="saveParityRows" skip-form="true" show-page-size="true" show-all-button="true" show-csv-button="true" select-columns="true" paginate="true">
+                <row-actions><set field="rowActionSeen" value="true"/></row-actions>
+                <row-selection id-field="rowId" parameter="selectedRow">
+                    <action>
+                        <dialog button-text="Inspect selected" title="Selected row"><label text="Selected row action" type="p"/></dialog>
+                        <form-single name="BvtXmlSelectedRow" transition="saveSelectedRow">
+                            <field name="rowId"><default-field title="Row ID"><display also-hidden="false"/></default-field></field>
+                            <field name="selectedSubmit"><default-field title="Submit"><submit text="Apply"/></default-field></field>
+                        </form-single>
+                    </action>
+                </row-selection>
+                <field name="rowId" align="left"><header-field title="ID" show-order-by="true"/><first-row-field title="First row"><label text="First row marker" type="span"/></first-row-field><default-field title="ID"><display also-hidden="false"/></default-field><second-row-field title="Second row"><label text="Second row marker" type="span"/></second-row-field><last-row-field title="Last row"><label text="Last row marker" type="span"/></last-row-field></field>
+                <field name="rowTitle"><header-field title="Title"/><default-field title="Title"><display also-hidden="false"/></default-field></field>
+                <field name="rowAmount" align="right"><header-field title="Amount"/><default-field title="Amount"><display also-hidden="false"/></default-field></field>
+                <columns><column><field-ref name="rowId"/></column><column><field-ref name="rowTitle"/></column><column><field-ref name="rowAmount"/></column></columns>
+            </form-list>
+        </container>
+    </widgets>
+</screen>
