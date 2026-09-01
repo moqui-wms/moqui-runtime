@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<screen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/xml-screen-3.xsd"
+        require-authentication="anonymous-view" default-menu-include="false" default-menu-title="bvt Structure Test">
+    <subscreens>
+        <subscreens-item name="fragment" location="component://webroot/screen/webroot/apps/BvtStructureFragment.xml"/>
+    </subscreens>
+
+    <transition name="loadFragment">
+        <default-response url="fragment"/>
+    </transition>
+    <transition name="loadDialog">
+        <default-response url="fragment"/>
+    </transition>
+    <transition name="editStructureLabel">
+        <default-response url="."/>
+    </transition>
+
+    <widgets>
+        <container id="bvt-structure-test" style="bvt-structure-test">
+            <label text="bvt Structure Test" type="h2" id="structure-heading"/>
+
+            <container-box id="closed-box" type="success" initial="closed">
+                <box-header title="Collapsible box"><label text="Header content" type="span"/></box-header>
+                <box-toolbar><link url="." text="Toolbar link" link-type="anchor"/></box-toolbar>
+                <box-body height="180"><label text="Box body content" type="p"/></box-body>
+            </container-box>
+
+            <container-row id="structure-row">
+                <row-col xs="12" md="6"><label text="Left row column" type="strong"/></row-col>
+                <row-col xs="12" md="6"><label text="Right row column" type="strong"/></row-col>
+            </container-row>
+
+            <container-panel id="structure-panel">
+                <panel-header><label text="Panel header" type="h4"/></panel-header>
+                <panel-left size="160"><label text="Panel left" type="span"/></panel-left>
+                <panel-center><label text="Panel center" type="span"/></panel-center>
+                <panel-right size="160"><label text="Panel right" type="span"/></panel-right>
+                <panel-footer><label text="Panel footer" type="span"/></panel-footer>
+            </container-panel>
+
+            <container-dialog id="static-dialog" button-text="Open static dialog" title="Static dialog" width="520">
+                <label text="Static dialog content" type="p"/>
+            </container-dialog>
+            <dynamic-dialog id="dynamic-dialog" transition="loadDialog" button-text="Open dynamic dialog" title="Dynamic dialog" width="520"/>
+            <dynamic-container id="dynamic-container" transition="loadFragment"/>
+
+            <section name="local-section"><widgets><label text="Local section content" type="p"/></widgets></section>
+            <section-include name="included-section" location="component://webroot/screen/webroot/apps/BvtStructureInclude.xml"/>
+
+            <container type="div" style="bvt-links-images">
+                <link id="structure-link" url="." text="SPA anchor link" link-type="anchor"/>
+                <link id="structure-form-link" url="." text="Form link" link-type="hidden-form"/>
+                <image id="structure-image" url="/ssstatic/images/Shipping.png" url-type="plain" width="32" height="32" alt="Shipping"/>
+                <editable id="structure-editable" text="Editable structure label" transition="editStructureLabel"/>
+            </container>
+        </container>
+    </widgets>
+</screen>
