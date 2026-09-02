@@ -43,6 +43,7 @@ along with this software (see the LICENSE.md file). If not, see
             if (dummyFks) edl.dummyFks(true)
             if (useTryInsert) edl.useTryInsert(true)
             if (hideNoActionFiles) edl.messageNoActionFiles(false)
+            edl.restrictSensitiveEntities(true)
 
             if (checkOnly) {
                 // do nothing, checkOnly handled in screen actions before render
@@ -191,6 +192,7 @@ along with this software (see the LICENSE.md file). If not, see
                     return
                 }
                 if (hideNoActionFiles) edl.messageNoActionFiles(false)
+                edl.restrictSensitiveEntities(true)
 
                 messageList = new LinkedList<String>()
                 diffInfoList = new LinkedList<Map<String, Object>>()
